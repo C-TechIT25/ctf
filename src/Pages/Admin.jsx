@@ -88,7 +88,7 @@ export default function Admin() {
   const [currentRegistration, setCurrentRegistration] = useState(null);
   const [editFormData, setEditFormData] = useState({
     name: "",
-    email: "",
+    designation: "",
     phone: "",
     game: "",
   });
@@ -147,7 +147,7 @@ export default function Admin() {
         const query = searchQuery.toLowerCase();
         return (
           reg.name.toLowerCase().includes(query) ||
-          reg.email.toLowerCase().includes(query) ||
+          reg.designation.toLowerCase().includes(query) ||
           reg.phone.toLowerCase().includes(query) ||
           reg.game.toLowerCase().includes(query)
         );
@@ -160,7 +160,7 @@ export default function Admin() {
     setCurrentRegistration(registration);
     setEditFormData({
       name: registration.name,
-      email: registration.email,
+      designation: registration.designation,
       phone: registration.phone,
       game: registration.game,
     });
@@ -221,6 +221,12 @@ export default function Admin() {
     const handleSelectChange = (event) => {
     handleTabChange(null, event.target.value); // mimic Tabs onChange signature
   };
+
+
+  const handleScore = () => {
+    navigate("/score");
+  }
+
 
   return (
     <>
@@ -329,7 +335,7 @@ export default function Admin() {
         </Paper>
 
         <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", mb: 2 , border: "3px solid", borderColor: "primary.main"}}>
-             <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "primary.main" }}>
+             <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "primary.main",display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", p: { xs: 1, sm: 1.5 } }}>
       {isMobile ? (
         // --- Mobile: Dropdown ---
         <Select
@@ -382,7 +388,15 @@ export default function Admin() {
             />
           ))}
         </Tabs>
+        
       )}
+         <Button
+                onClick={handleScore}
+                sx={{ mt:{xs: 1, sm: 0}, ml: { xs: 0, sm: 2 }, color: "primary.main", fontSize: { xs: "0.7rem", sm: "1rem" }, Size: { xs: "0.9rem", sm: "1rem",color: "primary.main",}, fontWeight: 600,backgroundColor:"white", textTransform: "none", borderRadius: 2,fontFamily: "inherit" }}
+              >
+
+                Mark Score
+              </Button>
     </Box>
 
           {gameCategories.map((category, index) => (
@@ -398,7 +412,13 @@ export default function Admin() {
                 }}
               >
                 {category} - {filteredRegistrations.length} registration(s)
+
+                
               </Typography>
+
+           
+
+              
 
               {filteredRegistrations.length === 0 ? (
                 <Paper elevation={2} sx={{ p: 3, textAlign: "center", bgcolor: "background.default" }}>
@@ -452,7 +472,7 @@ export default function Admin() {
                             fontWeight: "bold",
                             fontSize: { xs: "0.85rem", sm: "0.875rem" } 
                           }}>
-                            Email
+                            designation
                           </TableCell>
                         )}
                                                   {!isMobile && (
@@ -523,7 +543,7 @@ export default function Admin() {
                           </TableCell>
                           {!isMobile && (
                             <TableCell sx={{ fontSize: { xs: "0.7rem", sm: "0.875rem" } }}>
-                              {registration.email}
+                              {registration.designation}
                             </TableCell>
                           )}
                           {!isMobile && (
@@ -632,13 +652,13 @@ export default function Admin() {
           />
           <TextField
             margin="dense"
-            label="Email"
-            type="email"
+            label="Designation"
+            type="text"
             fullWidth
             variant="outlined"
-            value={editFormData.email}
+            value={editFormData.designation}
             onChange={(e) =>
-              setEditFormData({ ...editFormData, email: e.target.value })
+              setEditFormData({ ...editFormData, designation: e.target.value })
             }
             sx={{ 
               fontFamily: "inherit",

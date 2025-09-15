@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Grid,
@@ -48,6 +48,8 @@ import {
   where,
   getDocs,
   serverTimestamp,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import Lemon from "../assets/Lemon.png";
@@ -167,42 +169,6 @@ const cardData = [
   },
 ];
 
-// Winner List Data (matching the PDF structure)
-const winnerListData = [
-  {
-    game: "Lemon Balance Race",
-    winners: ["", ""],
-  },
-  {
-    game: "Straw Juice",
-    winners: ["", ""],
-  },
-  {
-    game: "Act & Guess",
-    winners: ["", ""],
-  },
-  {
-    game: "Quiz",
-    winners: ["", ""],
-  },
-  {
-    game: "Target Loss",
-    winners: ["", ""],
-  },
-  {
-    game: "Hiddne Match",
-    winners: ["", ""],
-  },
-  {
-    game: "Basket Ball",
-    winners: ["", ""],
-  },
-  {
-    game: "Balloon Blast",
-    winners: ["", ""],
-  },
-];
-
 // Admin Login Dialog Component
 function AdminLoginDialog({ open, onClose, onLoginSuccess }) {
   const theme = useTheme();
@@ -218,7 +184,7 @@ function AdminLoginDialog({ open, onClose, onLoginSuccess }) {
 
     // Simulate login process
     setTimeout(() => {
-      if (username === "ctechit" && password === "262181") {
+      if (username === "ctechit" && password === "2525") {
         onLoginSuccess();
         onClose();
         setUsername("");
@@ -339,10 +305,70 @@ function AdminLoginDialog({ open, onClose, onLoginSuccess }) {
 }
 
 // Winner List Dialog Component
+// Winner List Dialog Component
 function WinnerListDialog({ open, onClose }) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [winners, setWinners] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Alternative fetchWinners function without needing the index
+    const fetchWinners = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all registrations
+        const q = query(collection(db, "registrations"));
+        const querySnapshot = await getDocs(q);
+
+        // Group by game and find top 2 scores for each
+        const gamesMap = {};
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const game = data.game;
+          const score = Number(data.score) || 0;
+
+          if (!gamesMap[game]) {
+            gamesMap[game] = [];
+          }
+
+          gamesMap[game].push({
+            name: data.name,
+            score: score,
+          });
+        });
+
+        // Sort each game's participants by score and take top 2
+        const winnersData = cardData.map((game) => {
+          const gameParticipants = gamesMap[game.title] || [];
+          const sortedWinners = gameParticipants
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 2);
+
+          return {
+            game: game.title,
+            winners: sortedWinners,
+          };
+        });
+
+        setWinners(winnersData);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching winners: ", error);
+        setError(error.message);
+        setLoading(false);
+      }
+    };
+
+    if (open) {
+      fetchWinners();
+    }
+  }, [open]);
 
   return (
     <Dialog
@@ -426,121 +452,170 @@ function WinnerListDialog({ open, onClose }) {
           </Typography>
         </Box>
 
-        <TableContainer
-          component={Paper}
-          elevation={0}
-          sx={{
-            maxHeight: fullScreen ? "calc(100vh - 200px)" : "400px",
-            overflow: "auto",
-          }}
-        >
-          <Table
-            sx={{ minWidth: 300 }}
-            aria-label="winner list"
-            size={isMobile ? "small" : "medium"}
+        {error && (
+          <Alert severity="error" sx={{ m: 2 }}>
+            Error loading winners: {error}. Please make sure you've created the
+            required Firestore index.
+          </Alert>
+        )}
+
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              maxHeight: fullScreen ? "calc(100vh - 200px)" : "400px",
+              overflow: "auto",
+            }}
           >
-            <TableHead>
-              <TableRow sx={{ backgroundColor: "primary.main" }}>
-                <TableCell
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    width: "10%",
-                    py: { xs: 1, sm: 1.5 },
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    fontFamily: "inherit",
-                  }}
-                >
-                  S.No
-                </TableCell>
-                <TableCell
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    width: "30%",
-                    py: { xs: 1, sm: 1.5 },
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    fontFamily: "inherit",
-                  }}
-                >
-                  Game
-                </TableCell>
-                <TableCell
-                  sx={{
-                    color: "white",
-                    fontWeight: "bold",
-                    width: "60%",
-                    py: { xs: 1, sm: 1.5 },
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    fontFamily: "inherit",
-                  }}
-                >
-                  Participant Name
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {winnerListData.map((row, index) => (
-                <React.Fragment key={index}>
-                  <TableRow>
-                    <TableCell
-                      rowSpan={2}
-                      sx={{
-                        verticalAlign: "top",
-                        fontWeight: "bold",
-                        py: { xs: 1, sm: 1.5 },
-                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      {index + 1}.
-                    </TableCell>
-                    <TableCell
-                      rowSpan={2}
-                      sx={{
-                        verticalAlign: "top",
-                        py: { xs: 1, sm: 1.5 },
-                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      {row.game}
-                    </TableCell>
-                    <TableCell sx={{ py: { xs: 0.5, sm: 1 } }}>
-                      <TextField
-                        fullWidth
-                        placeholder="Participant Name"
-                        size="small"
+            <Table
+              sx={{ minWidth: 300 }}
+              aria-label="winner list"
+              size={isMobile ? "small" : "medium"}
+            >
+              <TableHead>
+                <TableRow sx={{ backgroundColor: "primary.main" }}>
+                  <TableCell
+                    sx={{
+                      color: "white",
+                      fontWeight: "bold",
+                      width: "10%",
+                      py: { xs: 1, sm: 1.5 },
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    S.No
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "white",
+                      fontWeight: "bold",
+                      width: "30%",
+                      py: { xs: 1, sm: 1.5 },
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Game
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "white",
+                      fontWeight: "bold",
+                      width: "60%",
+                      py: { xs: 1, sm: 1.5 },
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Participant Name (Score)
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {winners.map((gameWinners, index) => (
+                  <React.Fragment key={index}>
+                    <TableRow>
+                      <TableCell
+                        rowSpan={2}
                         sx={{
-                          "& .MuiInputBase-input": {
-                            fontSize: { xs: "0.75rem", sm: "0.9rem" },
-                            py: { xs: 0.5, sm: 0.75 },
-                            fontFamily: "inherit",
-                          },
+                          verticalAlign: "top",
+                          fontWeight: "bold",
+                          py: { xs: 1, sm: 1.5 },
+                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                          fontFamily: "inherit",
                         }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell sx={{ py: { xs: 0.5, sm: 1 } }}>
-                      <TextField
-                        fullWidth
-                        placeholder="Participant Name"
-                        size="small"
+                      >
+                        {index + 1}.
+                      </TableCell>
+                      <TableCell
+                        rowSpan={2}
                         sx={{
-                          "& .MuiInputBase-input": {
-                            fontSize: { xs: "0.75rem", sm: "0.9rem" },
-                            py: { xs: 0.5, sm: 0.75 },
-                          },
+                          verticalAlign: "top",
+                          py: { xs: 1, sm: 1.5 },
+                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                          fontFamily: "inherit",
                         }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                      >
+                        {gameWinners.game}
+                        {gameWinners.error && (
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            color="error"
+                          >
+                            Error loading data
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ py: { xs: 0.5, sm: 1 } }}>
+                        {gameWinners.winners[0] ? (
+                          <Typography
+                            sx={{
+                              fontSize: { xs: "0.75rem", sm: "0.9rem" },
+                              py: { xs: 0.5, sm: 0.75 },
+                              fontFamily: "inherit",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {gameWinners.winners[0].name} (
+                            {gameWinners.winners[0].score})
+                          </Typography>
+                        ) : (
+                          <Typography
+                            sx={{
+                              fontSize: { xs: "0.75rem", sm: "0.9rem" },
+                              py: { xs: 0.5, sm: 0.75 },
+                              fontFamily: "inherit",
+                              color: "text.secondary",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            No winner yet
+                          </Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell sx={{ py: { xs: 0.5, sm: 1 } }}>
+                        {gameWinners.winners[1] ? (
+                          <Typography
+                            sx={{
+                              fontSize: { xs: "0.75rem", sm: "0.9rem" },
+                              py: { xs: 0.5, sm: 0.75 },
+                              fontFamily: "inherit",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {gameWinners.winners[1].name} (
+                            {gameWinners.winners[1].score})
+                          </Typography>
+                        ) : (
+                          <Typography
+                            sx={{
+                              fontSize: { xs: "0.75rem", sm: "0.9rem" },
+                              py: { xs: 0.5, sm: 0.75 },
+                              fontFamily: "inherit",
+                              color: "text.secondary",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            No winner yet
+                          </Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </DialogContent>
 
       <DialogActions sx={{ p: { xs: 1, sm: 2 } }}>
@@ -938,6 +1013,7 @@ function RulesDialog({ open, onClose, game }) {
             mx: fullScreen ? 2 : 0,
             borderRadius: 2,
             fontFamily: "inherit",
+            textTransform: "none",
           }}
         >
           Got it!
@@ -1235,24 +1311,22 @@ export default function Games() {
         sx={{ bgcolor: "white", color: "text.primary", py: 1 }}
       >
         <Toolbar sx={{ minHeight: { xs: "48px", sm: "64px" } }}>
-          <Typography
-            variant="h4"
-            component="h1"
-            fontWeight="700"
-            sx={{
-              flexGrow: 1,
-              color: "#1976d2",
-              fontFamily: "Poppins, sans-serif",
-              userSelect: "none",
-              fontSize: { xs: "0.9rem", sm: "1.8rem", md: "2.5rem" },
-              lineHeight: { xs: "1.2", sm: "1.5" },
-            }}
-          >
-            C-Tech Engineering 
-            <span style={{ color: "#1976d2", fontFamily: "Keania One" }}>
-              
-            </span>
-          </Typography>
+            {/* <Typography
+              variant="h4"
+              component="h1"
+              fontWeight="700"
+              sx={{
+                flexGrow: 1,
+                color: "#1976d2",
+                fontFamily: "Poppins, sans-serif",
+                userSelect: "none",
+                fontSize: { xs: "0.9rem", sm: "1.8rem", md: "2.5rem" },
+                lineHeight: { xs: "1.2", sm: "1.5" },
+              }}
+            >
+              C-Tech Engineering
+              <span style={{ color: "#1976d2", fontFamily: "Keania One" }}></span>
+            </Typography> */}
 
           <Box
             sx={{
@@ -1293,35 +1367,31 @@ export default function Games() {
         </Toolbar>
       </AppBar>
 
-
-<Box
-  sx={{
-    width: { xs: "95%", sm: "90%", md: "70%" }, // shrink smoothly
-    margin: "auto",
-    mt: { xs: 2, sm: 4, md:7 },
-    mb: 4,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    // boxShadow: "0 14px 20px rgba(0, 0, 0, 1)",
-    borderRadius: 2,
-    userSelect: "none",
-    
-  }}
->
-  <img
-    src={Banner3}
-    alt="Banner"
-    style={{
-      width: "100%",
-      height: "auto", // let height adjust automatically
-      maxHeight: "70vh", // keep tall screens in check
-      objectFit: "cover", // crop nicely instead of stretching
-      borderRadius: "8px",
-    }}
-  />
-</Box>
-
+      <Box
+        sx={{
+          width: { xs: "95%", sm: "90%", md: "70%" },
+          margin: "auto",
+          mt: { xs: 2, sm: 4, md: 7 },
+          mb: 4,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          borderRadius: 2,
+          userSelect: "none",
+        }}
+      >
+        <img
+          src={Banner3}
+          alt="Banner"
+          style={{
+            width: "100%",
+            height: "auto",
+            maxHeight: "70vh",
+            objectFit: "cover",
+            borderRadius: "8px",
+          }}
+        />
+      </Box>
 
       <Box
         sx={{
@@ -1386,8 +1456,8 @@ export default function Games() {
                     display: "flex",
                     flexDirection: "column",
                     bgcolor: "background.paper",
-                    minWidth: { xs: 400, sm: 400 },
-                    maxWidth: { xs: 400, sm: 400 },
+                    minWidth: { xs: 100, sm: 400 },
+                    maxWidth: { xs: 600, sm: 400 },
                     border: "4px dashed #fdd520ff",
                     borderRadius: 3,
                     boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
@@ -1441,7 +1511,7 @@ export default function Games() {
                       src={game.image}
                       alt={game.title}
                       sx={{
-                        width: { xs: 80, sm: 100 }, // adjust size as needed
+                        width: { xs: 80, sm: 100 },
                         height: "auto",
                         mb: 2,
                         transition: "transform 0.3s ease",
@@ -1539,11 +1609,11 @@ export default function Games() {
         }}
       >
         <Typography
-          fontFamily="'Inter', sans-serif"
+          fontFamily="inherit"
           fontSize={{ xs: "0.875rem", sm: "1rem" }}
         >
           © 2025 C-Tech Fiesta •{" "}
-          <strong>Designed & Developed by C-Tech IT Department</strong>
+          <p style={{fontFamily: "Orienta", fontSize: "1rem", display: "inline-block",fontWeight:600}}>Designed & Developed by C-Tech IT Department</p>
         </Typography>
       </Box>
 

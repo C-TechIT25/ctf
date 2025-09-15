@@ -12,6 +12,7 @@ body{
   /* webkit scroll bar */
   scrollbar-width: thin;
   scrollbar-color: #e2b900ff #0f0f0f;
+  user-select: none;
   
 }
 
