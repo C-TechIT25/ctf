@@ -218,7 +218,7 @@ function AdminLoginDialog({ open, onClose, onLoginSuccess }) {
 
     // Simulate login process
     setTimeout(() => {
-      if (username === "irbaz" && password === "262181") {
+      if (username === "ctechit" && password === "262181") {
         onLoginSuccess();
         onClose();
         setUsername("");
