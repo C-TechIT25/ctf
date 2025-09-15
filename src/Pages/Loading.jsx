@@ -1,6 +1,6 @@
 // Loading.tsx
 import { useEffect, useRef } from "react";
-import { Box, Typography, keyframes, styled } from "@mui/material";
+import { Box, Typography,styled } from "@mui/material";
 import gsap from "gsap";
 import { useNavigate } from "react-router-dom";
 import video from "../assets/video.mp4";
