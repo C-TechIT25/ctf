@@ -28,6 +28,8 @@ import {
   useMediaQuery,
   Fab,
   Divider,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -43,7 +45,6 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where,
   orderBy,
 } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
@@ -97,7 +98,6 @@ export default function Admin() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isSmallMobile = useMediaQuery('(max-width:350px)');
 
   useEffect(() => {
     fetchRegistrations();
@@ -218,6 +218,9 @@ export default function Admin() {
       </Box>
     );
   }
+    const handleSelectChange = (event) => {
+    handleTabChange(null, event.target.value); // mimic Tabs onChange signature
+  };
 
   return (
     <>
@@ -326,35 +329,61 @@ export default function Admin() {
         </Paper>
 
         <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", mb: 2 , border: "3px solid", borderColor: "primary.main"}}>
-          <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "primary.main" }}>
-            <Tabs
-              value={selectedTab}
-              onChange={handleTabChange}
-              variant="scrollable"
-              scrollButtons="auto"
-              aria-label="game category tabs"
-              sx={{
-                "& .MuiTab-root": { 
-                  color: "rgba(255, 255, 255, 1)",
-                  fontFamily: "inherit",
-                  fontSize: { xs: "0.75rem", sm: "0.8rem" },
-                  minWidth: { xs: 70, sm: 120 },
-                  px: { xs: 0.5, sm: 2 }
-                },
-                "& .Mui-selected": { color: "primary.main",backgroundColor: "rgba(255, 255, 255, 1)" },
-                "& .MuiTabs-indicator": { backgroundColor: "white" }
-              }}
-            >
-              {gameCategories.map((category, index) => (
-                <Tab
-                  key={index}
-                  label={isSmallMobile && index > 0 ? `${index}` : category}
-                  id={`tab-${index}`}
-                  aria-controls={`tabpanel-${index}`}
-                />
-              ))}
-            </Tabs>
-          </Box>
+             <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "primary.main" }}>
+      {isMobile ? (
+        // --- Mobile: Dropdown ---
+        <Select
+          value={selectedTab}
+          onChange={handleSelectChange}
+          fullWidth
+          size="small"
+          sx={{
+            bgcolor: "white",
+            borderRadius: 1,
+            fontSize: "0.85rem",
+            "& .MuiSelect-select": { py: 1 },
+          }}
+        >
+          {gameCategories.map((category, index) => (
+            <MenuItem key={index} value={index} sx={{ fontSize: "0.85rem",fontFamily: "inherit" }}>
+              {category}
+            </MenuItem>
+          ))}
+        </Select>
+      ) : (
+        // --- Desktop: Tabs ---
+        <Tabs
+          value={selectedTab}
+          onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          aria-label="game category tabs"
+          sx={{
+            "& .MuiTab-root": {
+              color: "rgba(255, 255, 255, 1)",
+              fontFamily: "inherit",
+              fontSize: { xs: "0.75rem", sm: "0.8rem" },
+              minWidth: { xs: 70, sm: 120 },
+              px: { xs: 0.5, sm: 2 },
+            },
+            "& .Mui-selected": {
+              color: "primary.main",
+              backgroundColor: "rgba(255, 255, 255, 1)",
+              borderRadius: 2,
+            },
+          }}
+        >
+          {gameCategories.map((category, index) => (
+            <Tab
+              key={index}
+              label={category}
+              id={`tab-${index}`}
+              aria-controls={`tabpanel-${index}`}
+            />
+          ))}
+        </Tabs>
+      )}
+    </Box>
 
           {gameCategories.map((category, index) => (
             <TabPanel key={index} value={selectedTab} index={index}>

@@ -1244,7 +1244,7 @@ export default function Games() {
               color: "#1976d2",
               fontFamily: "Poppins, sans-serif",
               userSelect: "none",
-              fontSize: { xs: "0.7rem", sm: "1.8rem", md: "2.5rem" },
+              fontSize: { xs: "0.9rem", sm: "1.8rem", md: "2.5rem" },
               lineHeight: { xs: "1.2", sm: "1.5" },
             }}
           >
@@ -1267,7 +1267,7 @@ export default function Games() {
               sx={{
                 borderRadius: 2,
                 fontFamily: "'Poppins', sans-serif",
-                fontSize: { xs: "0.55rem", sm: "0.7rem", md: "0.875rem" },
+                fontSize: { xs: "0.7rem", sm: "0.7rem", md: "0.875rem" },
                 padding: { xs: "4px 8px", sm: "6px 12px", md: "8px 16px" },
                 minWidth: { xs: "auto", sm: "64px" },
                 whiteSpace: "nowrap",
@@ -1281,7 +1281,7 @@ export default function Games() {
               sx={{
                 borderRadius: 2,
                 fontFamily: "'Poppins', sans-serif",
-                fontSize: { xs: "0.55rem", sm: "0.7rem", md: "0.875rem" },
+                fontSize: { xs: "0.7rem", sm: "0.7rem", md: "0.875rem" },
                 padding: { xs: "4px 8px", sm: "6px 12px", md: "8px 16px" },
                 minWidth: { xs: "auto", sm: "64px" },
                 whiteSpace: "nowrap",
@@ -1386,8 +1386,8 @@ export default function Games() {
                     display: "flex",
                     flexDirection: "column",
                     bgcolor: "background.paper",
-                    minWidth: { xs: "100%", sm: 400 },
-                    maxWidth: { xs: "100%", sm: 400 },
+                    minWidth: { xs: 400, sm: 400 },
+                    maxWidth: { xs: 400, sm: 400 },
                     border: "4px dashed #fdd520ff",
                     borderRadius: 3,
                     boxShadow: "0 10px 30px rgba(0,0,0,0.08)",

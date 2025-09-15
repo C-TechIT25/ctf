@@ -1,9 +1,10 @@
-// Loading.tsx
-import { useEffect, useRef } from "react";
-import { Box, Typography,styled } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { Box, Typography, styled } from "@mui/material";
 import gsap from "gsap";
 import { useNavigate } from "react-router-dom";
+import { Howl } from "howler";
 import video from "../assets/video.mp4";
+import music from "../assets/music.mp3";
 
 /* ---------- 1. Styled components with video background ---------- */
 const Screen = styled(Box)({
@@ -33,7 +34,7 @@ const VideoBackground = styled(Box)({
     left: 0,
     width: "100%",
     height: "100%",
-    background: "rgba(0, 0, 0, 0.4)", // Dark overlay for better text visibility
+    background: "rgba(0, 0, 0, 0.4)",
   },
 });
 
@@ -48,12 +49,32 @@ const Content = styled(Box)({
   zIndex: 1,
 });
 
-/* ---------- 2. Title & button (start transparent for GSAP) ---------- */
 const Title = styled(Typography)({
   opacity: 0,
   marginBottom: "2rem",
 });
 
+const AudioButton = styled("button")({
+  position: "absolute",
+  top: 20,
+  right: 20,
+  zIndex: 10,
+  background: "rgba(0, 0, 0, 0.5)",
+  border: "2px solid #0099ff",
+  borderRadius: "50%",
+  width: 40,
+  height: 40,
+  color: "white",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  "&:hover": {
+    background: "rgba(0, 153, 255, 0.3)",
+  },
+});
+
+/* ---------- 2. Ghost styles ---------- */
 /* ---------- 3. Pixel-ghost converted to styled component ---------- */
 const ghostCSS = `
   #ghost{position:relative;scale:.8}
@@ -219,13 +240,48 @@ function Dots() {
   );
 }
 
-/* ---------- 5. Main component ---------- */
+/* ---------- 4. Main component ---------- */
 export default function Loading() {
   const titleRef = useRef(null);
   const btnRef = useRef(null);
-  const ghostRef = useRef(null); // ✅ ghost reference
+  const ghostRef = useRef(null);
   const navigate = useNavigate();
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef(null);
+  const soundRef = useRef(null);
+const [audioEnabled, setAudioEnabled] = useState(true); // default true
+
+useEffect(() => {
+  // Initialize Howler audio
+  soundRef.current = new Howl({
+    src: [music],
+    loop: true,
+    volume: 0.5,
+    onplay: () => setAudioEnabled(true),
+    onpause: () => setAudioEnabled(false),
+    onstop: () => setAudioEnabled(false),
+  });
+
+  // Try autoplay immediately
+  const attemptPlay = () => {
+    soundRef.current.play();
+
+    // Verify if blocked
+    setTimeout(() => {
+      if (!soundRef.current.playing()) {
+        setAudioEnabled(false); // fallback to muted state
+      }
+    }, 300);
+  };
+
+  attemptPlay();
+
+  // Cleanup
+  return () => {
+    if (soundRef.current) {
+      soundRef.current.stop();
+    }
+  };
+}, []);
 
   /* GSAP entrance */
   useEffect(() => {
@@ -243,34 +299,38 @@ export default function Loading() {
       );
   }, []);
 
-  // Play video when component mounts
+  /* Play video */
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.play().catch(error => {
-        console.log("Video autoplay failed:", error);
-      });
+      videoRef.current.play().catch(err => console.log("Video autoplay blocked:", err));
     }
   }, []);
 
+  /* Toggle audio */
+const toggleAudio = () => {
+  if (soundRef.current.playing()) {
+    soundRef.current.pause();
+  } else {
+    soundRef.current.play();
+  }
+};
+
+
   /* Hover jump effect */
   const handleHover = () => {
-    gsap.to(ghostRef.current, {
-      y: -150,
-      duration: 0.5,
-      ease: "power2.out",
-    });
+    if (ghostRef.current) {
+      gsap.to(ghostRef.current, { y: -150, duration: 0.5, ease: "power2.out" });
+    }
   };
-
   const handleLeave = () => {
-    gsap.to(ghostRef.current, {
-      y: 0,
-      duration: 0.5,
-      ease: "power2.inOut",
-    });
+    if (ghostRef.current) {
+      gsap.to(ghostRef.current, { y: 0, duration: 0.5, ease: "power2.inOut" });
+    }
   };
 
   /* Button click → navigate */
   const handleClick = () => {
+    if (soundRef.current) soundRef.current.stop();
     navigate("/home");
   };
 
@@ -281,18 +341,15 @@ export default function Loading() {
 
       <Screen>
         <VideoBackground>
-          <Video 
-            ref={videoRef}
-            autoPlay 
-            muted 
-            loop 
-            playsInline
-          >
+          <Video ref={videoRef} autoPlay muted loop playsInline>
             <source src={video} type="video/mp4" />
-            Your browser does not support the video tag.
           </Video>
         </VideoBackground>
-        
+
+        <AudioButton onClick={toggleAudio}>
+          {audioEnabled ? "🔊" : "🔇"}
+        </AudioButton>
+
         <Content>
           <Title
             ref={titleRef}
