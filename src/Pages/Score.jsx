@@ -30,12 +30,15 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Menu,
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
   Save as SaveIcon,
+  MoreVert as MoreVertIcon,
+  EmojiEvents as TrophyIcon,
 } from "@mui/icons-material";
 import {
   collection,
@@ -61,6 +64,13 @@ const gameCategories = [
   "Balloon blast",
 ];
 
+// Prize options
+const prizeOptions = {
+  NONE: "No Prize",
+  FIRST: "1st Prize",
+  SECOND: "2nd Prize",
+};
+
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
 
@@ -85,10 +95,13 @@ export default function Score() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [scores, setScores] = useState({});
+  const [prizes, setPrizes] = useState({});
   const [saveStatus, setSaveStatus] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saveAllDialogOpen, setSaveAllDialogOpen] = useState(false);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [selectedParticipant, setSelectedParticipant] = useState(null);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -111,11 +124,15 @@ export default function Score() {
 
       // Initialize scores from existing data or set to empty
       const initialScores = {};
+      const initialPrizes = {};
+      
       registrationsData.forEach((reg) => {
         initialScores[reg.id] = reg.score || "";
+        initialPrizes[reg.id] = reg.prize || "NONE";
       });
+      
       setScores(initialScores);
-
+      setPrizes(initialPrizes);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching registrations: ", error);
@@ -148,11 +165,30 @@ export default function Score() {
     }
   };
 
+  const handlePrizeChange = async (id, prizeValue) => {
+    try {
+      setPrizes((prev) => ({ ...prev, [id]: prizeValue }));
+      
+      const docRef = doc(db, "registrations", id);
+      await updateDoc(docRef, { prize: prizeValue });
+      
+      setSuccess("Prize updated successfully");
+      setTimeout(() => setSuccess(""), 3000);
+      handleMenuClose();
+    } catch (error) {
+      console.error("Error updating prize: ", error);
+      setError("Failed to update prize");
+    }
+  };
+
   const handleSaveScore = async (id) => {
     try {
       setSaveStatus((prev) => ({ ...prev, [id]: "saving" }));
       const docRef = doc(db, "registrations", id);
-      await updateDoc(docRef, { score: parseInt(scores[id]) || 0 });
+      await updateDoc(docRef, { 
+        score: parseInt(scores[id]) || 0,
+        prize: prizes[id] || "NONE"
+      });
 
       setSaveStatus((prev) => ({ ...prev, [id]: "saved" }));
       setTimeout(() => {
@@ -179,7 +215,10 @@ export default function Score() {
 
       const updatePromises = Object.keys(scores).map((id) => {
         const docRef = doc(db, "registrations", id);
-        return updateDoc(docRef, { score: parseInt(scores[id]) || 0 });
+        return updateDoc(docRef, { 
+          score: parseInt(scores[id]) || 0,
+          prize: prizes[id] || "NONE"
+        });
       });
 
       await Promise.all(updatePromises);
@@ -192,6 +231,28 @@ export default function Score() {
       setLoading(false);
       setError("Failed to save all scores");
     }
+  };
+
+  const handleMenuOpen = (event, participant) => {
+    setMenuAnchorEl(event.currentTarget);
+    setSelectedParticipant(participant);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+    setSelectedParticipant(null);
+  };
+
+  const getPrizeColor = (prize) => {
+    switch (prize) {
+      case "FIRST": return "#FFD700"; // Gold
+      case "SECOND": return "#C0C0C0"; // Silver
+      default: return "default";
+    }
+  };
+
+  const getPrizeText = (prize) => {
+    return prizeOptions[prize] || prizeOptions.NONE;
   };
 
   const filteredRegistrations = registrations
@@ -613,6 +674,16 @@ export default function Score() {
                           sx={{
                             color: "white",
                             fontWeight: "bold",
+                            fontSize: { xs: "0.85rem", sm: "0.875rem" },
+                            backgroundColor: "primary.main",
+                          }}
+                        >
+                          Prize
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: "white",
+                            fontWeight: "bold",
                             width: 100,
                             fontSize: { xs: "0.85rem", sm: "0.875rem" },
                             backgroundColor: "primary.main",
@@ -706,31 +777,67 @@ export default function Score() {
                             />
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={() => handleSaveScore(registration.id)}
-                              disabled={
-                                saveStatus[registration.id] === "saving"
-                              }
+                            <Chip
+                              icon={prizes[registration.id] !== "NONE" ? <TrophyIcon color="white" /> : null}
+                              label={getPrizeText(prizes[registration.id] || "NONE")}
+                              color={getPrizeColor(prizes[registration.id] || "NONE") !== "default" ? "default" : "default"}
+                              variant={prizes[registration.id] !== "NONE" ? "filled" : "outlined"}
                               sx={{
+                                // backgroundColor: getPrizeColor(prizes[registration.id] || "NONE"),
+                                color: prizes[registration.id] !== "NONE" ? "white" : "inherit",
                                 fontFamily: "inherit",
                                 fontSize: { xs: "0.7rem", sm: "0.8rem" },
-                                textTransform: "none",
-                                minWidth: "auto",
-                                px: 1,
+                                backgroundColor: prizes[registration.id] === "FIRST" ? "#6f9114ff" : prizes[registration.id] === "SECOND" ? "#0f7385ff" : "inherit",
+                                minWidth: 110,
+                                                                boxShadow: "0px 4px 3px black",
+
+                                maxWidth: 100,
+                                "& .MuiChip-label": {
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+
+                                },
                               }}
-                            >
-                              {saveStatus[registration.id] === "saving" ? (
-                                <CircularProgress size={16} />
-                              ) : saveStatus[registration.id] === "saved" ? (
-                                "Saved!"
-                              ) : saveStatus[registration.id] === "error" ? (
-                                "Error"
-                              ) : (
-                                "Save"
-                              )}
-                            </Button>
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" gap={1}>
+                              <Button
+                                variant="contained"
+                                size="small"
+                                onClick={() => handleSaveScore(registration.id)}
+                                disabled={
+                                  saveStatus[registration.id] === "saving"
+                                }
+                                sx={{
+                                  fontFamily: "inherit",
+                                  fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                  textTransform: "none",
+                                  minWidth: "auto",
+                                  px: 1,
+                                }}
+                              >
+                                {saveStatus[registration.id] === "saving" ? (
+                                  <CircularProgress size={16} />
+                                ) : saveStatus[registration.id] === "saved" ? (
+                                  "Saved!"
+                                ) : saveStatus[registration.id] === "error" ? (
+                                  "Error"
+                                ) : (
+                                  "Save"
+                                )}
+                              </Button>
+                              <IconButton
+                                size="small"
+                                onClick={(e) => handleMenuOpen(e, registration)}
+                                sx={{
+                                  border: "1px solid",
+                                  borderColor: "primary.main",
+                                }}
+                              >
+                                <MoreVertIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -742,6 +849,41 @@ export default function Score() {
           ))}
         </Paper>
       </Box>
+
+      {/* Prize Selection Menu */}
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={Boolean(menuAnchorEl)}
+        onClose={handleMenuClose}
+        sx={{
+          "& .MuiPaper-root": {
+            borderRadius: 2,
+            fontFamily: '"Poppins", sans-serif',
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => handlePrizeChange(selectedParticipant.id, "NONE")}
+          selected={prizes[selectedParticipant?.id] === "NONE"}
+          sx={{ fontFamily: "inherit" }}
+        >
+          No Prize
+        </MenuItem>
+        <MenuItem
+          onClick={() => handlePrizeChange(selectedParticipant.id, "FIRST")}
+          selected={prizes[selectedParticipant?.id] === "FIRST"}
+          sx={{ fontFamily: "inherit" }}
+        >
+          1st Prize
+        </MenuItem>
+        <MenuItem
+          onClick={() => handlePrizeChange(selectedParticipant.id, "SECOND")}
+          selected={prizes[selectedParticipant?.id] === "SECOND"}
+          sx={{ fontFamily: "inherit" }}
+        >
+          2nd Prize
+        </MenuItem>
+      </Menu>
 
       {/* Save All Confirmation Dialog */}
       <Dialog

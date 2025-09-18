@@ -305,7 +305,6 @@ function AdminLoginDialog({ open, onClose, onLoginSuccess }) {
 }
 
 // Winner List Dialog Component
-// Winner List Dialog Component
 function WinnerListDialog({ open, onClose }) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
@@ -315,7 +314,6 @@ function WinnerListDialog({ open, onClose }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Alternative fetchWinners function without needing the index
     const fetchWinners = async () => {
       try {
         setLoading(true);
@@ -325,30 +323,39 @@ function WinnerListDialog({ open, onClose }) {
         const q = query(collection(db, "registrations"));
         const querySnapshot = await getDocs(q);
 
-        // Group by game and find top 2 scores for each
+        // Group by game and find participants with 1st or 2nd prize
         const gamesMap = {};
 
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           const game = data.game;
-          const score = Number(data.score) || 0;
+          const prize = data.prize || "NONE";
+          
+          // Only include participants with 1st or 2nd prize
+          if (prize === "FIRST" || prize === "SECOND") {
+            if (!gamesMap[game]) {
+              gamesMap[game] = [];
+            }
 
-          if (!gamesMap[game]) {
-            gamesMap[game] = [];
+            gamesMap[game].push({
+              name: data.name,
+              prize: prize,
+              score: Number(data.score) || 0,
+            });
           }
-
-          gamesMap[game].push({
-            name: data.name,
-            score: score,
-          });
         });
 
-        // Sort each game's participants by score and take top 2
+        // Process winners for each game
         const winnersData = cardData.map((game) => {
           const gameParticipants = gamesMap[game.title] || [];
-          const sortedWinners = gameParticipants
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 2);
+          
+          // Sort by prize (FIRST comes before SECOND) and then by score
+          const sortedWinners = gameParticipants.sort((a, b) => {
+            if (a.prize !== b.prize) {
+              return a.prize === "FIRST" ? -1 : 1;
+            }
+            return b.score - a.score;
+          });
 
           return {
             game: game.title,
@@ -454,8 +461,7 @@ function WinnerListDialog({ open, onClose }) {
 
         {error && (
           <Alert severity="error" sx={{ m: 2 }}>
-            Error loading winners: {error}. Please make sure you've created the
-            required Firestore index.
+            Error loading winners: {error}
           </Alert>
         )}
 
@@ -507,109 +513,150 @@ function WinnerListDialog({ open, onClose }) {
                     sx={{
                       color: "white",
                       fontWeight: "bold",
-                      width: "60%",
+                      width: "30%",
                       py: { xs: 1, sm: 1.5 },
                       fontSize: { xs: "0.75rem", sm: "0.875rem" },
                       fontFamily: "inherit",
                     }}
                   >
-                    Participant Name (Score)
+                    Participant Name 
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "white",
+                      fontWeight: "bold",
+                      width: "20%",
+                      py: { xs: 1, sm: 1.5 },
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Prize
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "white",
+                      fontWeight: "bold",
+                      width: "20%",
+                      py: { xs: 1, sm: 1.5 },
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Score
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {winners.map((gameWinners, index) => (
                   <React.Fragment key={index}>
-                    <TableRow>
-                      <TableCell
-                        rowSpan={2}
-                        sx={{
-                          verticalAlign: "top",
-                          fontWeight: "bold",
-                          py: { xs: 1, sm: 1.5 },
-                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        {index + 1}.
-                      </TableCell>
-                      <TableCell
-                        rowSpan={2}
-                        sx={{
-                          verticalAlign: "top",
-                          py: { xs: 1, sm: 1.5 },
-                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        {gameWinners.game}
-                        {gameWinners.error && (
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            color="error"
-                          >
-                            Error loading data
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ py: { xs: 0.5, sm: 1 } }}>
-                        {gameWinners.winners[0] ? (
-                          <Typography
-                            sx={{
-                              fontSize: { xs: "0.75rem", sm: "0.9rem" },
-                              py: { xs: 0.5, sm: 0.75 },
-                              fontFamily: "inherit",
-                              fontWeight: "bold",
-                            }}
-                          >
-                            {gameWinners.winners[0].name} (
-                            {gameWinners.winners[0].score})
-                          </Typography>
-                        ) : (
-                          <Typography
-                            sx={{
-                              fontSize: { xs: "0.75rem", sm: "0.9rem" },
-                              py: { xs: 0.5, sm: 0.75 },
-                              fontFamily: "inherit",
-                              color: "text.secondary",
-                              fontStyle: "italic",
-                            }}
-                          >
-                            No winner yet
-                          </Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={{ py: { xs: 0.5, sm: 1 } }}>
-                        {gameWinners.winners[1] ? (
-                          <Typography
-                            sx={{
-                              fontSize: { xs: "0.75rem", sm: "0.9rem" },
-                              py: { xs: 0.5, sm: 0.75 },
-                              fontFamily: "inherit",
-                              fontWeight: "bold",
-                            }}
-                          >
-                            {gameWinners.winners[1].name} (
-                            {gameWinners.winners[1].score})
-                          </Typography>
-                        ) : (
-                          <Typography
-                            sx={{
-                              fontSize: { xs: "0.75rem", sm: "0.9rem" },
-                              py: { xs: 0.5, sm: 0.75 },
-                              fontFamily: "inherit",
-                              color: "text.secondary",
-                              fontStyle: "italic",
-                            }}
-                          >
-                            No winner yet
-                          </Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                    {gameWinners.winners.length > 0 ? (
+                      gameWinners.winners.map((winner, winnerIndex) => (
+                        <TableRow key={`${index}-${winnerIndex}`}>
+                          {winnerIndex === 0 && (
+                            <>
+                              <TableCell
+                                rowSpan={gameWinners.winners.length}
+                                sx={{
+                                  verticalAlign: "top",
+                                  fontWeight: "bold",
+                                  py: { xs: 1, sm: 1.5 },
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  fontFamily: "inherit",
+                                }}
+                              >
+                                {index + 1}.
+                              </TableCell>
+                              <TableCell
+                                rowSpan={gameWinners.winners.length}
+                                sx={{
+                                  verticalAlign: "top",
+                                  py: { xs: 1, sm: 1.5 },
+                                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                  fontFamily: "inherit",
+                                }}
+                              >
+                                {gameWinners.game}
+                              </TableCell>
+                            </>
+                          )}
+                          <TableCell sx={{ py: { xs: 0.5, sm: 1 }, fontFamily: "inherit" }}>
+                            <Typography
+                              sx={{
+                                fontSize: { xs: "0.75rem", sm: "0.9rem" },
+                                py: { xs: 0.5, sm: 0.75 },
+                                fontFamily: "inherit",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {winner.name}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ py: { xs: 0.5, sm: 1 }, fontFamily: "inherit" }}>
+                            <Chip
+                              label={winner.prize === "FIRST" ? "1st Prize" : "2nd Prize"}
+                              color={winner.prize === "FIRST" ? "primary" : "secondary"}
+                              size="small"
+                              sx={{
+                                fontFamily: "inherit",
+                                fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                                backgroundColor: winner.prize === "FIRST" ? "#6f9114ff" : "#0f7385ff",
+                                minWidth: "80px",
+                                boxShadow: "0px 4px 3px black",
+                                fontWeight: "bold",
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ py: { xs: 0.5, sm: 1 }, fontFamily: "inherit" }}>
+                            <Typography
+                              sx={{
+                                fontSize: { xs: "0.75rem", sm: "0.9rem" },
+                                py: { xs: 0.5, sm: 0.75 },
+                                fontFamily: "inherit",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {winner.score}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          sx={{
+                            fontWeight: "bold",
+                            py: { xs: 1, sm: 1.5 },
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          {index + 1}.
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            py: { xs: 1, sm: 1.5 },
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          {gameWinners.game}
+                        </TableCell>
+                        <TableCell
+                          colSpan={3}
+                          sx={{
+                            py: { xs: 1, sm: 1.5 },
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            fontFamily: "inherit",
+                            color: "text.secondary",
+                            fontStyle: "italic",
+                            textAlign: "center",
+                          }}
+                        >
+                          No winners assigned yet
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </React.Fragment>
                 ))}
               </TableBody>
@@ -638,7 +685,6 @@ function WinnerListDialog({ open, onClose }) {
     </Dialog>
   );
 }
-
 // Chat Dialog Component
 function ChatDialog({ open, onClose }) {
   const theme = useTheme();

@@ -434,7 +434,7 @@ export default function Admin() {
                     borderRadius: 2,
                     overflow: "auto",
                     maxWidth: "100%",
-                    maxHeight: "40vh",
+                    maxHeight: "60vh",
                   }}
                 >
                   <Table 
